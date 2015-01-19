@@ -68,16 +68,18 @@ def experiment_lxc(n, load, folder):
     print("running lxc containers for " + load)
     run_lxc(n, load)
 
-    time.sleep(30);
+    time.sleep(60);
+
     call(["lxc-ls"])
     print("now collecting data without uksm")
     #without uksm experiment for 60 seconds
-    for i in range(10):
+    without_duration = 60
+    os.system("top -d 1 -n " + str(without_duration) + " > " +  folder_without_uksm + "/top")
+    for i in range(without_duration):
         data_folder = folder_without_uksm + "/" + str(i);
         call(["mkdir", data_folder])
         os.system("free -m > " + data_folder + "/" + "free")
         os.system("cp /sys/kernel/mm/uksm/pages_* " + data_folder)
-        os.system("cp /proc/meminfo " + data_folder)
         time.sleep(1)
 
 
@@ -85,19 +87,23 @@ def experiment_lxc(n, load, folder):
     os.system("echo 1 > /sys/kernel/mm/uksm/run")
     os.system("cat /sys/kernel/mm/uksm/run")
 
-    for i in range(10*2):
+    with_duration = 60 * 5
+    os.system("top -d 1 -n " + str(with_duration) + " > " +  folder_with_uksm + "/top")
+    for i in range(with_duration):
         data_folder = folder_with_uksm + "/" + str(i);
         call(["mkdir", data_folder])
         os.system("free -m > " + data_folder + "/" + "free")
         os.system("cp /sys/kernel/mm/uksm/pages_* " + data_folder)
-        os.system("cp /proc/meminfo " + data_folder)
         time.sleep(1)
     print("data collected. Now stopping the containers")
     stop_lxc(n, load)
     call(["lxc-ls"])
+    print("DONE")
 
+""" """
 if(sys.argv[2]=="lxc"):
     experiment_lxc(sys.argv[1], sys.argv[3], sys.argv[4])
+""" """
 #create_kvm_qcow_images(15, "apache")
 #create_kvm_qcow_images(15, "mysql")
 
