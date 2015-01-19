@@ -74,7 +74,7 @@ def experiment_lxc(n, load, folder):
     print("now collecting data without uksm")
     #without uksm experiment for 60 seconds
     without_duration = 60
-    os.system("top -d 1 -n " + str(without_duration) + " > " +  folder_without_uksm + "/top")
+    os.system("top -b -d 1 -n " + str(without_duration) + " > " +  folder_without_uksm + "/top")
     for i in range(without_duration):
         data_folder = folder_without_uksm + "/" + str(i);
         call(["mkdir", data_folder])
@@ -88,7 +88,7 @@ def experiment_lxc(n, load, folder):
     os.system("cat /sys/kernel/mm/uksm/run")
 
     with_duration = 60 * 5
-    os.system("top -d 1 -n " + str(with_duration) + " > " +  folder_with_uksm + "/top")
+    os.system("top -b -d 1 -n " + str(with_duration) + " > " +  folder_with_uksm + "/top")
     for i in range(with_duration):
         data_folder = folder_with_uksm + "/" + str(i);
         call(["mkdir", data_folder])
