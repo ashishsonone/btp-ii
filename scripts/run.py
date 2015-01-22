@@ -51,6 +51,22 @@ def stop_lxc(n, load):
         call(["lxc-stop",  "-n", container_name])
     call(["lxc-ls"])
 
+def run_kvm(mac, port, name, disk):
+    mac_addr = "40:54:00:cf:eb:" + mac
+    os.system("qemu-system-x86_64 -name " + name + " -m 256 -enable-kvm -smp 1 -drive file=/mnt/local/" + disk + ",if=none,id=drive-virtio-disk0,format=raw,cache=none -device virtio-blk-pci,drive=drive-virtio-disk0,id=virtio-disk0 -netdev tap,id=hostnet0,script=/etc/qemu-ifup,downscript=/etc/qemu-ifdown -device virtio-net-pci,netdev=hostnet0,id=net0,mac=40:54:00:cf:eb:" + mac + " -device virtio-balloon-pci,id=balloon0 -boot c -vga cirrus -monitor telnet:10.129.34.2:" + port + ",server,nowait")
+
+
+def start_all_kvm(n, load):
+    print("Starting KVMs...")
+    mac = 13
+    port = 6531
+    for i in range(n):
+        name = "t" + str(i)
+        disk = "temp-" + load + "-" + str(i) + ".qcow"
+        run_kvm(str(mac), str(port), name, disk)
+        mac = mac + 1
+        port = port + 1
+    
 
 def experiment_lxc(n, load, folder):
     print("stopping uksm")
@@ -100,10 +116,11 @@ def experiment_lxc(n, load, folder):
     call(["lxc-ls"])
     print("DONE")
 
-""" """
+""" 
 if(sys.argv[2]=="lxc"):
     experiment_lxc(sys.argv[1], sys.argv[3], sys.argv[4])
-""" """
+""" 
+start_all_kvm(2, "apache")
 #create_kvm_qcow_images(15, "apache")
 #create_kvm_qcow_images(15, "mysql")
 
