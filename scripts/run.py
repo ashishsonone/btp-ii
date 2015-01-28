@@ -51,22 +51,90 @@ def stop_lxc(n, load):
         call(["lxc-stop",  "-n", container_name])
     call(["lxc-ls"])
 
-def run_kvm(mac, port, name, disk):
-    mac_addr = "40:54:00:cf:eb:" + mac
-    os.system("qemu-system-x86_64 -name " + name + " -m 256 -enable-kvm -smp 1 -drive file=/mnt/local/" + disk + ",if=none,id=drive-virtio-disk0,format=raw,cache=none -device virtio-blk-pci,drive=drive-virtio-disk0,id=virtio-disk0 -netdev tap,id=hostnet0,script=/etc/qemu-ifup,downscript=/etc/qemu-ifdown -device virtio-net-pci,netdev=hostnet0,id=net0,mac=40:54:00:cf:eb:" + mac + " -device virtio-balloon-pci,id=balloon0 -boot c -vga cirrus -monitor telnet:10.129.34.2:" + port + ",server,nowait")
+def run_kvm(final_mac, vnc, telnet, name, disk):
+    print("spawning " + disk + "mac = " + final_mac + " vnc = " + str(vnc) + " telnet = " + str(telnet))
+    os.system("qemu-system-x86_64 -name " + name + " -m 256 -enable-kvm -smp 1 -drive file=/mnt/local/" + disk + ",if=none,id=drive-virtio-disk0,format=qcow2,cache=none -device virtio-blk-pci,drive=drive-virtio-disk0,id=virtio-disk0 -netdev tap,id=hostnet0,script=/etc/qemu-ifup,downscript=/etc/qemu-ifdown -device virtio-net-pci,netdev=hostnet0,id=net0,mac="+ final_mac + " -device virtio-balloon-pci,id=balloon0 -boot c -vga cirrus -monitor telnet:10.129.34.2:" + str(telnet) + ",server,nowait " + "--daemonize -vnc 10.129.34.2:" + str(vnc))
+
+def stop_kvm(telnet):
+    print("Stopping kvm with telnet port " + str(telnet))
+    os.system("./stop.sh " + str(telnet))
+
+def start_all_kvm(n, load, folder):
+    print("stopping uksm")
+    os.system("echo 0 > /sys/kernel/mm/uksm/run")
+    os.system("cat /sys/kernel/mm/uksm/run")
+
+    folder_without_uksm = folder + "/without"
+    folder_with_uksm = folder + "/with"
+
+    print("creating folders " + folder)
+    call(["mkdir", "-p" , folder])
+    call(["mkdir", "-p" , folder_without_uksm])
+    call(["mkdir", "-p" , folder_with_uksm])
 
 
-def start_all_kvm(n, load):
     print("Starting KVMs...")
-    mac = 13
-    port = 6531
+    if(load == "mysql"):
+        base_mac = "42:54:00:cf:eb:"
+        base_vnc = 6600
+        base_telnet = 6500
+    elif(load == "apache"):
+        base_mac = "40:54:00:cf:ec:"
+        base_vnc = 5400
+        base_telnet = 5500
+    else:
+        print("Incorrect load name. Returning")
+    
+    mac = 0
+    
     for i in range(n):
+        mac_str = "%02d" % (mac+i,)
+        final_mac = base_mac + mac_str
+        print("mac is " + final_mac)
         name = "t" + str(i)
         disk = "temp-" + load + "-" + str(i) + ".qcow"
-        run_kvm(str(mac), str(port), name, disk)
-        mac = mac + 1
-        port = port + 1
+        vnc = base_vnc + i
+        telnet = base_telnet + i
+        run_kvm(final_mac, vnc, telnet, name, disk)
+        
+    os.system("ps -e | grep qemu-system")
     
+    #experiment here
+    print("Experiment is on")
+    time.sleep(60)
+    
+    print("now collecting data without uksm")
+    #without uksm experiment for 60 seconds
+    without_duration = 60
+    os.system("top -b -d 1 -n " + str(without_duration) + " > " +  folder_without_uksm + "/top &")
+    for i in range(without_duration):
+        data_folder = folder_without_uksm + "/" + str(i);
+        call(["mkdir", data_folder])
+        os.system("free -m > " + data_folder + "/" + "free")
+        os.system("cp /sys/kernel/mm/uksm/pages_* " + data_folder)
+        time.sleep(1)
+
+
+    print("starting uksm")
+    os.system("echo 1 > /sys/kernel/mm/uksm/run")
+    os.system("cat /sys/kernel/mm/uksm/run")
+
+    with_duration = 60 * 5
+    os.system("top -b -d 1 -n " + str(with_duration) + " > " +  folder_with_uksm + "/top &")
+    for i in range(with_duration):
+        data_folder = folder_with_uksm + "/" + str(i);
+        call(["mkdir", data_folder])
+        os.system("free -m > " + data_folder + "/" + "free")
+        os.system("cp /sys/kernel/mm/uksm/pages_* " + data_folder)
+        time.sleep(1)
+    print("data collected. Now stopping the kvms")
+    
+    for i in range(n):
+        telnet = base_telnet + i
+        stop_kvm(telnet)
+        
+    print("done")
+    os.system("ps -e | grep qemu-system")
 
 def experiment_lxc(n, load, folder):
     print("stopping uksm")
@@ -84,7 +152,7 @@ def experiment_lxc(n, load, folder):
     print("running lxc containers for " + load)
     run_lxc(n, load)
 
-    time.sleep(60);
+    time.sleep(60)
 
     call(["lxc-ls"])
     print("now collecting data without uksm")
@@ -120,9 +188,10 @@ def experiment_lxc(n, load, folder):
 if(sys.argv[2]=="lxc"):
     experiment_lxc(sys.argv[1], sys.argv[3], sys.argv[4])
 """ 
-start_all_kvm(2, "apache")
+#start_all_kvm(10, "apache", "data-kvm-apache-10")
+experiment_lxc("10", "mysql", "data-lxc-mysql-10")
 #create_kvm_qcow_images(15, "apache")
-#create_kvm_qcow_images(15, "mysql")
+#create_kvm_qcow_images(15, "apache")
 
 #create_lxc_containers(15, "apache")
 #create_lxc_containers(15, "mysql")
