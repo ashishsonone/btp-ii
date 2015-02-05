@@ -5,7 +5,7 @@
 
 import os, sys
 
-num_folders = -1;
+num_folders = 0;
 if(len(sys.argv) > 1):
     base_directories = []
     for i in range(1, len(sys.argv)):
@@ -38,4 +38,5 @@ def uksm(uksm_file, without_files_count, with_files_count):
         time = time + 1;
 
 uksm("pages_shared", 60, 600)
-#uksm("pages_sharing")
+#uksm("pages_sharing", 60, 600)
+#uksm("pages_scanned", 60, 600)

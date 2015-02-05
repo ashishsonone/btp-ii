@@ -1,47 +1,54 @@
-import os
+import os, sys
+
+num_folders = 0;
+if(len(sys.argv) > 1):
+    directories = []
+    for i in range(1, len(sys.argv)):
+        directories.append(sys.argv[i] + "/")
+        num_folders = num_folders + 1
 
 '''
 @param filename : Name of the top file generated
 @param keyword : Keyword for relevant data (eg : qemu-system)
 '''
-def dump_top_info(filename, keyword, load):
-    dump_file = keyword + "-" + load + ".dump"
-    os.system("cat " + filename + " | grep " + keyword + " >> " + dump_file)  
+def dump_top_info(keyword):
+    #remove old dump files
+    for i in range(num_folders):
+        dump_file = "dump" + str(i) + ".dump"
+        os.system("cat " + directories[i] + "/without/top | grep " + keyword + " > " + dump_file)
+        os.system("cat " + directories[i] + "/with/top | grep " + keyword + " >> " + dump_file)
 
 '''
 @param filename : The dump file with information specific to load like qemu/lxc
 @param n : Number of loads run during data collection. Each time "top" was run,
            it generated 'n' entries for the load (eg : 10 KVMs were run)
 '''
-def process_top_file(filename, load, n, container, col_no):
-    l_count_file = "tmp-" + container + "-" + load + ".count"
-    os.system("wc -l " + filename + ">" + l_count_file)
-    l_count = open(l_count_file, "r")
-    num_entries_str = l_count.readline()
-    num_entries_str_arr = num_entries_str.split()
-    num_entries_str = num_entries_str_arr[0]
-    num_entries = int(num_entries_str)
-    f = open(filename, 'r')
+def process_top_file(n, col_no, seconds):
+    dump_files = []
+    for i in range(num_folders):
+        dump_file = "dump" + str(i) + ".dump"
+        f = open(dump_file, 'r')
+        dump_files.append(f)
+
     time = 0
-    data_file = "plot-data/" + container + "-" + load + "-top-mem-data.txt"
-    data = open(data_file, "a")
-    loop_count = num_entries/n
-    for i in range(loop_count):
+    for i in range(seconds):
         total_mem_usage = 0
-        for j in range(n):
-            l = f.readline()
-            tok = l.split()
-            res = tok[col_no]
-            #if container == "kvm":
-            #    res = res[:-1]
-            RES = int(res)
-            total_mem_usage = total_mem_usage + RES
-        data_line = str(time) + " "
+        for d in range(num_folders):
+            sub_total = 0
+            for j in range(n):
+                l = dump_files[d].readline()
+                tok = l.split()
+                res = tok[col_no]
+                #if container == "kvm":
+                #    res = res[:-1]
+                RES = int(res)
+                sub_total = sub_total + RES
+            total_mem_usage = total_mem_usage + sub_total
+        print(str(time) + " " + str(total_mem_usage/num_folders))
         time = time + 1
-        data_line = data_line + str(total_mem_usage) + "\n"
-        data.write(data_line)
-    data.close()
-    f.close()
+
+    for i in range(num_folders):
+        dump_files[i].close()
 
 """
 dump_top_info("data-kvm-apache-10/without/top", "qemu-system", "apache")    
@@ -60,18 +67,6 @@ dump_top_info("data-lxc-mysql-10/without/top", "lxc-start", "mysql")
 dump_top_info("data-lxc-mysql-10/with/top", "lxc-start", "mysql")    
 process_top_file("lxc-start-mysql.dump", "mysql", 10, "lxc")
 """
-dump_top_info("data-kvm-apache-10/without/top", "uksmd", "kvm-apache")    
-dump_top_info("data-kvm-apache-10/with/top", "uksmd", "kvm-apache")    
-process_top_file("uksmd-kvm-apache.dump", "uksmd-apache", 1, "kvm", 8)
 
-dump_top_info("data-kvm-mysql-10/without/top", "uksmd", "kvm-mysql")    
-dump_top_info("data-kvm-mysql-10/with/top", "uksmd", "kvm-mysql")    
-process_top_file("uksmd-kvm-mysql.dump", "uksmd-mysql", 1, "kvm", 8)
-
-dump_top_info("data-lxc-apache-10/without/top", "uksmd", "lxc-apache")    
-dump_top_info("data-lxc-apache-10/with/top", "uksmd", "lxc-apache")    
-process_top_file("uksmd-lxc-apache.dump", "uksmd-apache", 1, "lxc", 8)
-
-dump_top_info("data-lxc-mysql-10/without/top", "uksmd", "lxc-mysql")    
-dump_top_info("data-lxc-mysql-10/with/top", "uksmd", "lxc-mysql")    
-process_top_file("uksmd-lxc-mysql.dump", "uksmd-mysql", 1, "lxc", 8)
+dump_top_info("uksmd")
+process_top_file(1, 8, 60 + 600)
