@@ -26,14 +26,6 @@ def destroy_lxc_containers(n, load):
         call(["lxc-destroy",  "-n", container_name])
     print(str(n) + "containers for " + load + " destroyed")
 
-def create_kvm_qcow_images(n, load):
-    for i in range(int(n)):
-        base = "/mnt/local/"
-        image_name = "temp-" + load + "-" + str(i) + ".qcow"
-        print(image_name)
-        call(["qemu-img",  "create", "-f", "qcow2", "-b", base + load + "UbuntuServerHardDisk.img", base + image_name])
-    print(str(n) + "containers for " + load + " created")
-
 def run_lxc(n, load):
     call(["lxc-ls"])
     for i in range(int(n)):
@@ -101,10 +93,10 @@ def start_all_kvm(n, load, folder):
     
     #experiment here
     print("Experiment is on")
-    time.sleep(60)
+    time.sleep(300) #wait for 5 minutes for system to stabalize
     
     print("now collecting data without uksm")
-    #without uksm experiment for 60 seconds
+    #without uksm experiment for 60 second
     without_duration = 60
     os.system("top -b -d 1 -n " + str(without_duration) + " > " +  folder_without_uksm + "/top &")
     for i in range(without_duration):
@@ -119,7 +111,7 @@ def start_all_kvm(n, load, folder):
     os.system("echo 1 > /sys/kernel/mm/uksm/run")
     os.system("cat /sys/kernel/mm/uksm/run")
 
-    with_duration = 60 * 5
+    with_duration = 60 * 10
     os.system("top -b -d 1 -n " + str(with_duration) + " > " +  folder_with_uksm + "/top &")
     for i in range(with_duration):
         data_folder = folder_with_uksm + "/" + str(i);
@@ -152,7 +144,7 @@ def experiment_lxc(n, load, folder):
     print("running lxc containers for " + load)
     run_lxc(n, load)
 
-    time.sleep(60)
+    time.sleep(300)
 
     call(["lxc-ls"])
     print("now collecting data without uksm")
@@ -171,7 +163,7 @@ def experiment_lxc(n, load, folder):
     os.system("echo 1 > /sys/kernel/mm/uksm/run")
     os.system("cat /sys/kernel/mm/uksm/run")
 
-    with_duration = 60 * 5
+    with_duration = 60 * 10
     os.system("top -b -d 1 -n " + str(with_duration) + " > " +  folder_with_uksm + "/top &")
     for i in range(with_duration):
         data_folder = folder_with_uksm + "/" + str(i);
@@ -188,8 +180,19 @@ def experiment_lxc(n, load, folder):
 if(sys.argv[2]=="lxc"):
     experiment_lxc(sys.argv[1], sys.argv[3], sys.argv[4])
 """ 
-#start_all_kvm(10, "apache", "data-kvm-apache-10")
-experiment_lxc("10", "mysql", "data-lxc-mysql-10")
+"""
+for i in range(3):
+    print("Exp No " + str(i))
+    os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
+    start_all_kvm(10, "apache", "long-" + str(i) + "-kvm-apache-10")
+"""
+
+for i in range(3):
+    print("Exp No " + str(i))
+    os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
+    experiment_lxc("10", "apache", "long-" + str(i) + "-lxc-apache-10")
+
+#experiment_lxc("10", "mysql", "data-lxc-mysql-10")
 #create_kvm_qcow_images(15, "apache")
 #create_kvm_qcow_images(15, "apache")
 

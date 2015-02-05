@@ -25,10 +25,12 @@ for i in range(without_files_count-1): #one file is top file
     line = f.readline()
     line = f.readline()
     tokens = line.split()
-    print(str(time) + " " + tokens[2])
+    used_mem = int(tokens[2])
+    cached_mem = int(tokens[6])
+    print(str(time) + " " + str(used_mem-cached_mem))
     time = time + 1;
 
-print("switching...............")    
+#print("switching...............")    
 
 for i in range(with_files_count-1):
     f = open(with_directory+"/"+str(i)+"/"+free_file_name, 'r')
@@ -37,6 +39,8 @@ for i in range(with_files_count-1):
     line = f.readline()
     line = f.readline()
     tokens = line.split()
-    print(str(time) + " " + tokens[2])
+    used_mem = int(tokens[2])
+    cached_mem = int(tokens[6])
+    print(str(time) + " " + str(used_mem-cached_mem))
     time = time + 1
 

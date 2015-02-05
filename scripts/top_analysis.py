@@ -13,7 +13,7 @@ def dump_top_info(filename, keyword, load):
 @param n : Number of loads run during data collection. Each time "top" was run,
            it generated 'n' entries for the load (eg : 10 KVMs were run)
 '''
-def process_top_file(filename, load, n, container):
+def process_top_file(filename, load, n, container, col_no):
     l_count_file = "tmp-" + container + "-" + load + ".count"
     os.system("wc -l " + filename + ">" + l_count_file)
     l_count = open(l_count_file, "r")
@@ -31,9 +31,9 @@ def process_top_file(filename, load, n, container):
         for j in range(n):
             l = f.readline()
             tok = l.split()
-            res = tok[5]
-            if container == "kvm":
-                res = res[:-1]
+            res = tok[col_no]
+            #if container == "kvm":
+            #    res = res[:-1]
             RES = int(res)
             total_mem_usage = total_mem_usage + RES
         data_line = str(time) + " "
@@ -43,7 +43,7 @@ def process_top_file(filename, load, n, container):
     data.close()
     f.close()
 
-
+"""
 dump_top_info("data-kvm-apache-10/without/top", "qemu-system", "apache")    
 dump_top_info("data-kvm-apache-10/with/top", "qemu-system", "apache")    
 process_top_file("qemu-system-apache.dump", "apache", 10, "kvm")
@@ -59,3 +59,19 @@ process_top_file("lxc-start-apache.dump", "apache", 10, "lxc")
 dump_top_info("data-lxc-mysql-10/without/top", "lxc-start", "mysql")    
 dump_top_info("data-lxc-mysql-10/with/top", "lxc-start", "mysql")    
 process_top_file("lxc-start-mysql.dump", "mysql", 10, "lxc")
+"""
+dump_top_info("data-kvm-apache-10/without/top", "uksmd", "kvm-apache")    
+dump_top_info("data-kvm-apache-10/with/top", "uksmd", "kvm-apache")    
+process_top_file("uksmd-kvm-apache.dump", "uksmd-apache", 1, "kvm", 8)
+
+dump_top_info("data-kvm-mysql-10/without/top", "uksmd", "kvm-mysql")    
+dump_top_info("data-kvm-mysql-10/with/top", "uksmd", "kvm-mysql")    
+process_top_file("uksmd-kvm-mysql.dump", "uksmd-mysql", 1, "kvm", 8)
+
+dump_top_info("data-lxc-apache-10/without/top", "uksmd", "lxc-apache")    
+dump_top_info("data-lxc-apache-10/with/top", "uksmd", "lxc-apache")    
+process_top_file("uksmd-lxc-apache.dump", "uksmd-apache", 1, "lxc", 8)
+
+dump_top_info("data-lxc-mysql-10/without/top", "uksmd", "lxc-mysql")    
+dump_top_info("data-lxc-mysql-10/with/top", "uksmd", "lxc-mysql")    
+process_top_file("uksmd-lxc-mysql.dump", "uksmd-mysql", 1, "lxc", 8)
