@@ -51,7 +51,7 @@ def stop_kvm(telnet):
     print("Stopping kvm with telnet port " + str(telnet))
     os.system("./stop.sh " + str(telnet))
 
-def start_all_kvm(n, load, folder):
+def start_all_kvm_mix(n, folder):
     print("stopping uksm")
     os.system("echo 0 > /sys/kernel/mm/uksm/run")
     os.system("cat /sys/kernel/mm/uksm/run")
@@ -75,16 +75,12 @@ def start_all_kvm(n, load, folder):
     time.sleep(int(idle_duration*1.2))
 
     print("Starting KVMs...")
-    if(load == "mysql"):
-        base_mac = "42:54:00:cf:eb:"
-        base_vnc = 6600
-        base_telnet = 6500
-    elif(load == "apache"):
-        base_mac = "40:54:00:cf:ec:"
-        base_vnc = 5400
-        base_telnet = 5500
-    else:
-        print("Incorrect load name. Returning")
+    base_mac_mysql = "42:54:00:cf:eb:"
+    base_vnc_mysql = 6600
+    base_telnet_mysql = 6500
+    base_mac_apache = "40:54:00:cf:ec:"
+    base_vnc_apache = 5400
+    base_telnet_apache = 5500
     
     """
     """
@@ -94,16 +90,26 @@ def start_all_kvm(n, load, folder):
 
 
     mac = 0
-    for i in range(n):
+    for i in range(n/2):
         mac_str = "%02d" % (mac+i,)
-        final_mac = base_mac + mac_str
+        final_mac = base_mac_mysql + mac_str
         print("mac is " + final_mac)
         name = "t" + str(i)
-        disk = "temp-" + load + "-" + str(i) + ".qcow"
-        vnc = base_vnc + i
-        telnet = base_telnet + i
+        disk = "temp-mysql" + "-" + str(i) + ".qcow"
+        vnc = base_vnc_mysql + i
+        telnet = base_telnet_mysql + i
         run_kvm(final_mac, vnc, telnet, name, disk)
         
+    for i in range(n/2):
+        mac_str = "%02d" % (mac+i,)
+        final_mac = base_mac_apache + mac_str
+        print("mac is " + final_mac)
+        name = "t" + str(i)
+        disk = "temp-apache" + "-" + str(i) + ".qcow"
+        vnc = base_vnc_apache + i
+        telnet = base_telnet_apache + i
+        run_kvm(final_mac, vnc, telnet, name, disk)
+
     os.system("ps -e | grep qemu-system")
     print("sleeping for " + str(int(without_duration*1.1)))
     time.sleep(int(without_duration*1.1))
@@ -122,16 +128,20 @@ def start_all_kvm(n, load, folder):
     """
     #"""
     
-    for i in range(n):
-        telnet = base_telnet + i
+    for i in range(n/2):
+        telnet = base_telnet_mysql + i
         stop_kvm(telnet)
         
+    for i in range(n/2):
+        telnet = base_telnet_apache + i
+        stop_kvm(telnet)
+
     print("DONE")
     os.system("ps -e | grep qemu-system")
     """
     #"""
 
-def experiment_lxc(n, load, folder):
+def experiment_lxc_mix(n, folder):
     print("stopping uksm")
     os.system("echo 0 > /sys/kernel/mm/uksm/run")
     os.system("cat /sys/kernel/mm/uksm/run")
@@ -159,7 +169,8 @@ def experiment_lxc(n, load, folder):
     os.system("python data_collect.py " + str(without_duration) + " " + folder_without_uksm + " &")
 
     print("running " + str(n) +  "lxc containers for " + load)
-    run_lxc(n, load)
+    run_lxc(n/2, "mysql")
+    run_lxc(n/2, "apache")
 
     print("sleeping for " + str(int(without_duration*1.1)))
     time.sleep(int(without_duration*1.1))
@@ -172,7 +183,8 @@ def experiment_lxc(n, load, folder):
     os.system("top -b -d 1 -n " + str(with_duration) + " > " +  folder_with_uksm + "/top &")
     os.system("python data_collect.py " + str(with_duration) + " " + folder_with_uksm)
     print("data collected. Now stopping the containers")
-    stop_lxc(n, load)
+    stop_lxc(n/2, "mysql")
+    stop_lxc(n/2, "apache")
     call(["lxc-ls"])
     print("DONE")
 
@@ -190,26 +202,18 @@ for i in range(3):
 
 
 for i in range(3):
-    data_folder = "DATA1/exp" + str(i) + "-kvm-apache"
+    data_folder = "DATA1/exp" + str(i) + "-kvm-mix"
     os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
-    start_all_kvm(10, "apache", data_folder)
+    start_all_kvm_mix(10, data_folder)
 
-print("KVM Apache DONE! >>>>>>>>>>>>>>>>>>>>>>>>")
+print("KVM mix DONE! >>>>>>>>>>>>>>>>>>>>>>>>")
+
 for i in range(3):
-    data_folder = "DATA1/exp" + str(i) + "-kvm-mysql"
+    data_folder = "DATA1/exp" + str(i) + "-lxc-mix"
     os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
-    start_all_kvm(10, "mysql", data_folder)
-print("KVM MySql DONE! >>>>>>>>>>>>>>>>>>>>>>>>")
-for i in range(3):
-    data_folder = "DATA1/exp" + str(i) + "-lxc-mysql"
-    os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
-    experiment_lxc(10, "mysql", data_folder)
-print("LXC mysql DONE! >>>>>>>>>>>>>>>>>>>>>>>>")
-for i in range(3):
-    data_folder = "DATA1/exp" + str(i) + "-lxc-apache"
-    os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
-    experiment_lxc(10, "apache", data_folder)
-print("LXC Apache DONE! >>>>>>>>>>>>>>>>>>>>>>>>")
+    experiment_lxc_mix(10, data_folder)
+
+print("lxc mix DONE! >>>>>>>>>>>>>>>>>>>>>>>>")
 
 #start_all_kvm(10, "mysql", "temp")
 #experiment_lxc(2, "apache", "temp-3")
