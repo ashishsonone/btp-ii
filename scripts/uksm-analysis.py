@@ -13,6 +13,17 @@ if(len(sys.argv) > 1):
         num_folders = num_folders + 1
 
 def uksm(uksm_file, without_files_count, with_files_count):
+    reference = []
+    if(uksm_file == "pages_scanned"):
+        for d in range(num_folders):
+            f = open(base_directories[d] + "without" + "/0/" + uksm_file, 'r')
+            line = f.readline()
+            tokens = line.split()
+            reference.append(int(tokens[0]))
+    else:
+        for d in range(num_folders):
+            reference.append(0)
+
     time = 0;
     for i in range(without_files_count):
         aggr_value = 0
@@ -21,7 +32,7 @@ def uksm(uksm_file, without_files_count, with_files_count):
             #read the second line. split and take the third token(i.e tokens[2])
             line = f.readline()
             tokens = line.split()
-            aggr_value += int(tokens[0])
+            aggr_value += (int(tokens[0]) - reference[d])
         print(str(time) + " " + str(aggr_value/num_folders))
         time = time + 1;
 
@@ -33,10 +44,10 @@ def uksm(uksm_file, without_files_count, with_files_count):
             #read the second line. split and take the third token(i.e tokens[2])
             line = f.readline()
             tokens = line.split()
-            aggr_value += int(tokens[0])
+            aggr_value += (int(tokens[0]) - reference[d])
         print(str(time) + " " + str(aggr_value/num_folders))
         time = time + 1;
 
-uksm("pages_shared", 60, 600)
+#uksm("pages_shared", 60, 600)
 #uksm("pages_sharing", 60, 600)
-#uksm("pages_scanned", 60, 600)
+uksm("pages_scanned", 60, 600)

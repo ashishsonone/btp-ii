@@ -77,6 +77,8 @@ def start_all_kvm(n, load, folder):
     else:
         print("Incorrect load name. Returning")
     
+    """
+    """
     mac = 0
     
     for i in range(n):
@@ -91,6 +93,8 @@ def start_all_kvm(n, load, folder):
         
     os.system("ps -e | grep qemu-system")
     
+    """
+    """
     #experiment here
     print("Experiment is on")
     time.sleep(300) #wait for 5 minutes for system to stabalize
@@ -120,6 +124,9 @@ def start_all_kvm(n, load, folder):
         os.system("cp /sys/kernel/mm/uksm/pages_* " + data_folder)
         time.sleep(1)
     print("data collected. Now stopping the kvms")
+
+    """
+    #"""
     
     for i in range(n):
         telnet = base_telnet + i
@@ -127,6 +134,8 @@ def start_all_kvm(n, load, folder):
         
     print("done")
     os.system("ps -e | grep qemu-system")
+    """
+    #"""
 
 def experiment_lxc(n, load, folder):
     print("stopping uksm")
@@ -187,11 +196,17 @@ for i in range(3):
     start_all_kvm(10, "apache", "long-" + str(i) + "-kvm-apache-10")
 """
 
+#start_all_kvm(10, "apache", "temp")
+#start_all_kvm(10, "mysql", "temp")
+"""
 for i in range(3):
     print("Exp No " + str(i))
     os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
     experiment_lxc("10", "apache", "long-" + str(i) + "-lxc-apache-10")
+"""
 
+stop_lxc("10", "mysql")
+stop_lxc("10", "apache")
 #experiment_lxc("10", "mysql", "data-lxc-mysql-10")
 #create_kvm_qcow_images(15, "apache")
 #create_kvm_qcow_images(15, "apache")

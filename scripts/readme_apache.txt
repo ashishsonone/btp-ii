@@ -19,3 +19,17 @@ t11 10.129.28.251
 t12 10.129.28.128
 t13 10.129.26.236
 t14 10.129.26.146
+
+FOR LXC APACHE:
+==============
+
+temp-apache-0 10.129.28.182
+temp-apache-1 10.129.28.68 
+temp-apache-2 10.129.28.74
+temp-apache-3 10.129.28.122
+temp-apache-4 10.129.26.228
+temp-apache-5 10.129.26.139
+temp-apche-6 10.129.28.100
+temp-apache-7 10.129.26.137
+temp-apache-8 10.129.28.254
+temp-apache-9 10.129.26.38
