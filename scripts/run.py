@@ -52,6 +52,7 @@ def stop_kvm(telnet):
     os.system("./stop.sh " + str(telnet))
 
 def start_all_kvm(n, load, folder):
+    """
     print("stopping uksm")
     os.system("echo 0 > /sys/kernel/mm/uksm/run")
     os.system("cat /sys/kernel/mm/uksm/run")
@@ -73,7 +74,8 @@ def start_all_kvm(n, load, folder):
 
     print("sleeping for " + str(int(idle_duration*1.2)))
     time.sleep(int(idle_duration*1.2))
-
+    
+    """
     print("Starting KVMs...")
     if(load == "mysql"):
         base_mac = "42:54:00:cf:eb:"
@@ -87,14 +89,11 @@ def start_all_kvm(n, load, folder):
         print("Incorrect load name. Returning")
     
     """
-    """
     without_duration = 60 * 3
     os.system("top -b -d 1 -n " + str(without_duration) + " > " +  folder_without_uksm + "/top &")
     os.system("python data_collect.py " + str(without_duration) + " " + folder_without_uksm + " &")
-
-
     mac = 0
-    for i in range(n):
+    for i in range(5, 5+n):
         mac_str = "%02d" % (mac+i,)
         final_mac = base_mac + mac_str
         print("mac is " + final_mac)
@@ -103,14 +102,10 @@ def start_all_kvm(n, load, folder):
         vnc = base_vnc + i
         telnet = base_telnet + i
         run_kvm(final_mac, vnc, telnet, name, disk)
-        
     os.system("ps -e | grep qemu-system")
     print("sleeping for " + str(int(without_duration*1.1)))
     time.sleep(int(without_duration*1.1))
-
     
-    """
-    """
     print("starting uksm")
     os.system("echo 1 > /sys/kernel/mm/uksm/run")
     os.system("cat /sys/kernel/mm/uksm/run")
@@ -119,17 +114,15 @@ def start_all_kvm(n, load, folder):
     os.system("top -b -d 1 -n " + str(with_duration) + " > " +  folder_with_uksm + "/top &")
     os.system("python data_collect.py " + str(with_duration) + " " + folder_with_uksm)
     print("data collected. Now stopping the kvms")
-    """
-    #"""
+    """ 
     
-    for i in range(n):
+    for i in range(5, 5+n):
         telnet = base_telnet + i
         stop_kvm(telnet)
         
     print("DONE")
     os.system("ps -e | grep qemu-system")
-    """
-    #"""
+    
 
 def experiment_lxc(n, load, folder):
     print("stopping uksm")
@@ -163,7 +156,7 @@ def experiment_lxc(n, load, folder):
 
     print("sleeping for " + str(int(without_duration*1.1)))
     time.sleep(int(without_duration*1.1))
-
+    
     print("starting uksm")
     os.system("echo 1 > /sys/kernel/mm/uksm/run")
     os.system("cat /sys/kernel/mm/uksm/run")
@@ -188,38 +181,37 @@ for i in range(3):
 """
 
 
-
+"""
 for i in range(3):
     data_folder = "DATA1/exp" + str(i) + "-kvm-apache"
     os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
-    start_all_kvm(10, "apache", data_folder)
+    start_all_kvm(5, "apache", data_folder)
 
 print("KVM Apache DONE! >>>>>>>>>>>>>>>>>>>>>>>>")
 for i in range(3):
     data_folder = "DATA1/exp" + str(i) + "-kvm-mysql"
     os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
-    start_all_kvm(10, "mysql", data_folder)
+    start_all_kvm(5, "mysql", data_folder)
 print("KVM MySql DONE! >>>>>>>>>>>>>>>>>>>>>>>>")
 for i in range(3):
     data_folder = "DATA1/exp" + str(i) + "-lxc-mysql"
     os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
-    experiment_lxc(10, "mysql", data_folder)
+    experiment_lxc(5, "mysql", data_folder)
 print("LXC mysql DONE! >>>>>>>>>>>>>>>>>>>>>>>>")
 for i in range(3):
     data_folder = "DATA1/exp" + str(i) + "-lxc-apache"
     os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
-    experiment_lxc(10, "apache", data_folder)
+    experiment_lxc(5, "apache", data_folder)
 print("LXC Apache DONE! >>>>>>>>>>>>>>>>>>>>>>>>")
-
-#start_all_kvm(10, "mysql", "temp")
+start_all_kvm(5, "mysql", "temp")
 #experiment_lxc(2, "apache", "temp-3")
 
-"""
 for i in range(3):
     print("Exp No " + str(i))
     os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
     experiment_lxc("10", "apache", "long-" + str(i) + "-lxc-apache-10")
 """
+start_all_kvm(5, "mysql", "temp")
 
 #stop_lxc("10", "mysql")
 #stop_lxc("10", "apache")

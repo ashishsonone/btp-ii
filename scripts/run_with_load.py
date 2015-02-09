@@ -11,6 +11,8 @@ import os
 import time
 from subprocess import call
 
+run_number = 0
+
 def create_lxc_containers(n, load):
     for i in range(int(n)):
         container_name = "temp-" + load + "-" + str(i)
@@ -51,7 +53,7 @@ def stop_kvm(telnet):
     print("Stopping kvm with telnet port " + str(telnet))
     os.system("./stop.sh " + str(telnet))
 
-def start_all_kvm_mix(n, folder):
+def start_all_kvm(n, load, folder):
     print("stopping uksm")
     os.system("echo 0 > /sys/kernel/mm/uksm/run")
     os.system("cat /sys/kernel/mm/uksm/run")
@@ -73,75 +75,68 @@ def start_all_kvm_mix(n, folder):
 
     print("sleeping for " + str(int(idle_duration*1.2)))
     time.sleep(int(idle_duration*1.2))
-
-    print("Starting KVMs...")
-    base_mac_mysql = "42:54:00:cf:eb:"
-    base_vnc_mysql = 6600
-    base_telnet_mysql = 6500
-    base_mac_apache = "40:54:00:cf:ec:"
-    base_vnc_apache = 5400
-    base_telnet_apache = 5500
     
-    """
-    """
-    without_duration = 60 * 3
+    print("Starting KVMs...")
+    if(load == "mysql"):
+        base_mac = "42:54:00:cf:eb:"
+        base_vnc = 6600
+        base_telnet = 6500
+    elif(load == "apache"):
+        base_mac = "40:54:00:cf:ec:"
+        base_vnc = 5400
+        base_telnet = 5500
+    else:
+        print("Incorrect load name. Returning")
+    
+    boot_duration = 60 * 3
+    mac = 0
+    for i in range(5, 5+n):
+        mac_str = "%02d" % (mac+i,)
+        final_mac = base_mac + mac_str
+        print("mac is " + final_mac)
+        name = "t" + str(i)
+        disk = "temp-" + load + "-" + str(i) + ".qcow"
+        vnc = base_vnc + i
+        telnet = base_telnet + i
+        run_kvm(final_mac, vnc, telnet, name, disk)
+    os.system("ps -e | grep qemu-system")
+    print("sleeping for " + str(int(boot_duration*1.1)))
+    time.sleep(int(boot_duration*1.1))
+  
+    without_duration = 60 * 5
     os.system("top -b -d 1 -n " + str(without_duration) + " > " +  folder_without_uksm + "/top &")
     os.system("python data_collect.py " + str(without_duration) + " " + folder_without_uksm + " &")
-
-
-    mac = 0
-    for i in range(n/2+1):
-        mac_str = "%02d" % (mac+i,)
-        final_mac = base_mac_mysql + mac_str
-        print("mac is " + final_mac)
-        name = "t" + str(i)
-        disk = "temp-mysql" + "-" + str(i) + ".qcow"
-        vnc = base_vnc_mysql + i
-        telnet = base_telnet_mysql + i
-        run_kvm(final_mac, vnc, telnet, name, disk)
-        
-    for i in range(n/2):
-        mac_str = "%02d" % (mac+i,)
-        final_mac = base_mac_apache + mac_str
-        print("mac is " + final_mac)
-        name = "t" + str(i)
-        disk = "temp-apache" + "-" + str(i) + ".qcow"
-        vnc = base_vnc_apache + i
-        telnet = base_telnet_apache + i
-        run_kvm(final_mac, vnc, telnet, name, disk)
-
-    os.system("ps -e | grep qemu-system")
+    
+    #Start oltp benchmark
+    os.system("ssh root@10.129.34.7 'sh /root/Desktop/load.sh kvm " + str(run_number) + "' &")
+    
     print("sleeping for " + str(int(without_duration*1.1)))
     time.sleep(int(without_duration*1.1))
-
+    os.system("ssh root@10.129.34.7 'killall oltpbenchmark' &")
     
-    """
-    """
     print("starting uksm")
     os.system("echo 1 > /sys/kernel/mm/uksm/run")
     os.system("cat /sys/kernel/mm/uksm/run")
 
-    with_duration = 60 * 7
+    #Start oltp benchmark
+    os.system("ssh root@10.129.34.7 'sh /root/Desktop/load.sh kvm " + str(run_number) + "' &")
+    
+    with_duration = 60 * 5
     os.system("top -b -d 1 -n " + str(with_duration) + " > " +  folder_with_uksm + "/top &")
     os.system("python data_collect.py " + str(with_duration) + " " + folder_with_uksm)
     print("data collected. Now stopping the kvms")
-    """
-    #"""
     
-    for i in range(n/2+1):
-        telnet = base_telnet_mysql + i
+    os.system("ssh root@10.129.34.7 'killall oltpbenchmark' &")
+    for i in range(n):
+        telnet = base_telnet + i
         stop_kvm(telnet)
         
-    for i in range(n/2):
-        telnet = base_telnet_apache + i
-        stop_kvm(telnet)
-
     print("DONE")
     os.system("ps -e | grep qemu-system")
-    """
+    
     #"""
 
-def experiment_lxc_mix(n, folder):
+def experiment_lxc(n, load, folder):
     print("stopping uksm")
     os.system("echo 0 > /sys/kernel/mm/uksm/run")
     os.system("cat /sys/kernel/mm/uksm/run")
@@ -164,72 +159,50 @@ def experiment_lxc_mix(n, folder):
     print("sleeping for " + str(int(idle_duration*1.2)))
     time.sleep(int(idle_duration*1.2))
 
-    without_duration = 60 * 3
+    print("running " + str(n) +  "lxc containers for " + load)
+    run_lxc(n, load)
+
+    boot_duration = 60 * 3
+    print("sleeping for " + str(int(boot_duration*1.1)))
+    time.sleep(int(boot_duration*1.1))
+    
+    without_duration = 60 * 5
     os.system("top -b -d 1 -n " + str(without_duration) + " > " +  folder_without_uksm + "/top &")
     os.system("python data_collect.py " + str(without_duration) + " " + folder_without_uksm + " &")
 
-    #print("running " + str(n) +  "lxc containers for " + load)
-    run_lxc(n/2+1, "mysql")
-    run_lxc(n/2, "apache")
-
+    #Start oltp benchmark
+    os.system("ssh root@10.129.34.7 'sh /root/Desktop/load.sh lxc " + str(run_number) + "' &")
     print("sleeping for " + str(int(without_duration*1.1)))
     time.sleep(int(without_duration*1.1))
+    os.system("ssh root@10.129.34.7 'killall oltpbenchmark' &")
 
     print("starting uksm")
     os.system("echo 1 > /sys/kernel/mm/uksm/run")
     os.system("cat /sys/kernel/mm/uksm/run")
 
-    with_duration = 60 * 7
+    #Start oltp benchmark
+    os.system("ssh root@10.129.34.7 'sh /root/Desktop/load.sh lxc " + str(run_number) + "' &")
+    
+    with_duration = 60 * 5
     os.system("top -b -d 1 -n " + str(with_duration) + " > " +  folder_with_uksm + "/top &")
     os.system("python data_collect.py " + str(with_duration) + " " + folder_with_uksm)
     print("data collected. Now stopping the containers")
-    stop_lxc(n/2+1, "mysql")
-    stop_lxc(n/2, "apache")
+    os.system("ssh root@10.129.34.7 'killall oltpbenchmark' &")
+    stop_lxc(n, load)
     call(["lxc-ls"])
     print("DONE")
 
-""" 
-if(sys.argv[2]=="lxc"):
-    experiment_lxc(sys.argv[1], sys.argv[3], sys.argv[4])
-""" 
-'''
-for i in range(3):
-    print("Exp No " + str(i))
-    os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
-    start_all_kvm(10, "apache", "long-" + str(i) + "-kvm-apache-10")
-'''
+
 
 for i in range(3):
-    data_folder = "DATA1/exp" + str(i) + "-kvm-mix"
+    run_number = i
+    data_folder = "DATA_LOAD/exp" + str(i) + "-kvm-mysql"
     os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
-    start_all_kvm_mix(5, data_folder)
-
-print("KVM mix DONE! >>>>>>>>>>>>>>>>>>>>>>>>")
-
+    start_all_kvm(5, "mysql", data_folder)
+print("KVM MySql DONE! >>>>>>>>>>>>>>>>>>>>>>>>")
 for i in range(3):
-    data_folder = "DATA1/exp" + str(i) + "-lxc-mix"
+    run_number = i
+    data_folder = "DATA_LOAD/exp" + str(i) + "-lxc-mysql"
     os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
-    experiment_lxc_mix(5, data_folder)
-
-print("lxc mix DONE! >>>>>>>>>>>>>>>>>>>>>>>>")
-
-#start_all_kvm(10, "mysql", "temp")
-#experiment_lxc(2, "apache", "temp-3")
-
-"""
-for i in range(3):
-    print("Exp No " + str(i))
-    os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
-    experiment_lxc("10", "apache", "long-" + str(i) + "-lxc-apache-10")
-"""
-
-#stop_lxc("10", "mysql")
-#stop_lxc("10", "apache")
-#experiment_lxc("10", "mysql", "data-lxc-mysql-10")
-#create_kvm_qcow_images(15, "apache")
-#create_kvm_qcow_images(15, "apache")
-
-#create_lxc_containers(15, "apache")
-#create_lxc_containers(15, "mysql")
-#destroy_lxc_containers(15, "apache")
-#destroy_lxc_containers(15, "mysql")
+    experiment_lxc(5, "mysql", data_folder)
+print("LXC mysql DONE! >>>>>>>>>>>>>>>>>>>>>>>>")
