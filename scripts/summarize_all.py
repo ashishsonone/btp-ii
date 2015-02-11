@@ -1,8 +1,8 @@
 import os,sys
 
 machines = ["kvm", "lxc"]
-loads = ["apache", "mysql", "mix"]
-#loads = ["apache", "mysql"]
+#loads = ["apache", "mysql", "mix"]
+loads = ["apache", "mysql"]
 data_field = ["free", "pages_shared", "pages_scanned", "pages_unshared", "pages_sharing"]
 
 input_dir = sys.argv[1]

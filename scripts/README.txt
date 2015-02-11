@@ -90,3 +90,21 @@ mysql-6  10.129.28.181
 mysql-7  10.129.26.252
 mysql-8  10.129.26.177
 mysql-9  10.129.26.88
+
+
+====================================================
+ssh to container/kvm
+1)    Enabling mysql remote access:
+change /etc/mysql/my.cnf file - 
+    bind-address    = <your ip>
+
+2) DO THIS LOCALLY USING:
+    mysql -u root -proot -e "grant all on *.* to root@'%' identified by 'root';"
+
+3)    sudo service mysql restart
+
+=== extras ====
+DO THIS REMOTELY USING:
+    mysql -u root -h 10.129.28.181 -proot -e "CREATE DATABASE IF NOT EXISTS temp2;"
+
+show grants for root@'%'

@@ -110,10 +110,11 @@ def start_all_kvm(n, load, folder):
     #Start oltp benchmark
     os.system("ssh root@10.129.34.7 'sh /root/Desktop/load.sh kvm " + str(run_number) + "' &")
     
-    print("sleeping for " + str(int(without_duration*1.1)))
-    time.sleep(int(without_duration*1.1))
+    print("sleeping for " + str(int(without_duration*1.2)))
+    time.sleep(int(without_duration*1.2))
     os.system("ssh root@10.129.34.7 'killall oltpbenchmark' &")
     
+    time.sleep(30)
     print("starting uksm")
     os.system("echo 1 > /sys/kernel/mm/uksm/run")
     os.system("cat /sys/kernel/mm/uksm/run")
@@ -127,7 +128,8 @@ def start_all_kvm(n, load, folder):
     print("data collected. Now stopping the kvms")
     
     os.system("ssh root@10.129.34.7 'killall oltpbenchmark' &")
-    for i in range(n):
+    time.sleep(30)
+    for i in range(5, 5+n):
         telnet = base_telnet + i
         stop_kvm(telnet)
         
@@ -172,8 +174,8 @@ def experiment_lxc(n, load, folder):
 
     #Start oltp benchmark
     os.system("ssh root@10.129.34.7 'sh /root/Desktop/load.sh lxc " + str(run_number) + "' &")
-    print("sleeping for " + str(int(without_duration*1.1)))
-    time.sleep(int(without_duration*1.1))
+    print("sleeping for " + str(int(without_duration*1.2)))
+    time.sleep(int(without_duration*1.2))
     os.system("ssh root@10.129.34.7 'killall oltpbenchmark' &")
 
     print("starting uksm")
@@ -194,15 +196,17 @@ def experiment_lxc(n, load, folder):
 
 
 
-for i in range(3):
-    run_number = i
-    data_folder = "DATA_LOAD/exp" + str(i) + "-kvm-mysql"
-    os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
-    start_all_kvm(5, "mysql", data_folder)
+#for i in range(3):
+run_number = 2
+data_folder = "DATA_LOAD/exp" + str(run_number) + "-kvm-mysql"
+os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
+start_all_kvm(5, "mysql", data_folder)
 print("KVM MySql DONE! >>>>>>>>>>>>>>>>>>>>>>>>")
+"""
 for i in range(3):
     run_number = i
     data_folder = "DATA_LOAD/exp" + str(i) + "-lxc-mysql"
     os.system("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'")
     experiment_lxc(5, "mysql", data_folder)
 print("LXC mysql DONE! >>>>>>>>>>>>>>>>>>>>>>>>")
+"""
